@@ -1,6 +1,7 @@
 ---
 title: "Week 3"
-author: "David Kane"
+author: "Setu Mehta"
+date: "9-22-2020"
 output: html_document
 ---
 
@@ -40,10 +41,15 @@ sep_old <-
          title = course_title,
          name = course_name,
          department = course_department) %>% 
-  filter(u_grad > 10)
+  group_by(id, title, name, department) %>%
+  summarize(u_grad = sum(u_grad), .groups = "drop") %>%
+  filter(u_grad > 10) 
+  
+sep_old
 
 # But this is not correct! Look for Gov 50: Data. What do you see? What can you
 # do to clean it up?
+
 ```
 
 
@@ -53,6 +59,27 @@ sep_old <-
 
 **Prompt:** Read in and clean the new data, creating an object called `sep_new`. 
 
+```{r}
+sep_new <- 
+  read_excel("new_data/class_enrollment_summary_by_term_9-21-2020.xlsx", skip = 3) %>%
+  clean_names() %>% 
+  filter(! is.na(course_title)) %>% 
+  select(-grad, -non_degree, -x_reg, -vus, -employee, 
+         -withdraw, -total, -instructor_full_name, -course_section_code) %>%
+  rename(id = course_id,
+         title = course_title,
+         name = course_name,
+         department = course_department) %>%
+  group_by(id, title, name, department) %>%
+  summarize(u_grad = sum(u_grad), .groups = "drop") %>%
+  filter(u_grad > 10) 
+
+view(sep_new)
+  
+
+```
+
+
 
 
 ### Scene 2
@@ -61,15 +88,33 @@ sep_old <-
 
 Before we start on the model, Wisdom suggests we should:
 
+# We should make assumptions to simplify the data. We have already made some assumptions where we have chosen specific data to focus on, and have removed certain data with a N/A. 
+
+# If we did not make assumptions, the data would be overwhelming and it would be difficult to make causal interpretations.
+
+# Ask why is someone interested in asking the certain questions about the data, which could be understanding why certain classes have a drop in enrollment, and addressing these issues.  
+
 
 After we have a model, Temperance suggests we should:
 
+# We should recognize the limitation of our model. These enrollment results are dependent upon the time that we are collecting the data.
 
+# When we are making assumptions based on average results, we should be aware that these conclusions may not account for individual variations per class.  
 
 ### Scene 3
 
 **Prompt:** Which classes had the biggest increases and decreases in undergraduate enrollments between September 1 and today? Make a graphic that shows the 5 biggest increases and decreases. Make it look nice.
 
+```{r}
+newenrol <- inner_join(sep_new, sep_old, by = c("id", "name", "department", "title")) %>%
+  mutate(change = u_grad.x - u_grad.y) %>%
+  mutate(abs_change = abs(change)) 
+  arrange(abs_change)
+
+view(newenrol)
+
+
+```
 
 
 
